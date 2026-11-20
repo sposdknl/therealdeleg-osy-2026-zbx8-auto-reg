@@ -39,9 +39,9 @@ timeout 5 bash -c '</dev/tcp/enceladus.pfsense.cz/10051' && echo OK
 ```
 
 V Zabbixu je registrovaný host `therealdeleg-debian13-89d882b87a7a` se skupinou `SPOS`,
-štítkem `	class: os, OS: Linux, target: linux`:
+štítkem `class: os`, `OS: Linux`, `target: linux`:
 
-![Registrace hosta](Images/[soubor-registrace].png)
+![Registrace hosta](Images/mujhost.png)
 
 Příchozí data z hosta (Latest data):
 
@@ -54,4 +54,3 @@ Příchozí data z hosta (Latest data):
 - `configure-zabbix-agent2.sh`: stálý název hosta, nastavení agenta a spuštění služby.
 - `Images/`: screenshoty registrace a příchozích dat.
 
-## Zdroje
