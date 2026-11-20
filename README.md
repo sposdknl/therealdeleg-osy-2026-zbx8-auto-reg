@@ -1,38 +1,57 @@
 # OSY: Automatická registrace Debianu 13 do Zabbixu
 
-![Virtuální server s Debianem 13 propojený se Zabbix monitoringem](Images/debian13-zabbix-agent2-hero.webp)
+![Ilustrace FreeBSD serveru a monitoringu]
 
-Toto je šablona zadání pro výuku předmětu OSY na [osy.sposdk.cz](https://osy.sposdk.cz/). Z této šablony vznikne váš vlastní žákovský repozitář. Pracujte a odevzdávejte změny v něm.
+Vagrant spustí virtuální stroj s Debianem 13 (`bento/debian-13`), nainstaluje na něj
+Zabbix Agent 2 verze 8.0 LTS z oficiálního repozitáře Zabbixu a automaticky ho
+zaregistruje na server `enceladus.pfsense.cz`.
 
-## Cíl úlohy
+## Postup práce
 
-Spusťte pomocí Vagrantu virtuální stroj s **Debianem 13**. Nainstalujte na něj **Zabbix Agent 2 verze 8.0 LTS** a nastavte jeho automatickou registraci na server `enceladus.pfsense.cz`. Instalace a konfigurace agenta musí proběhnout automaticky prostřednictvím provisioningu ve `Vagrantfile`; ruční instalace uvnitř virtuálního stroje nestačí. Vzorové skripty najdete v adresáři [`Example/`](Example/). Výsledkem má být funkční, monitorovaný host s vaším jedinečným názvem.
+1. Vyšel jsem z `Vagrant/Vagrantfile-debian` ze šablony a upravil ho (box, provisioning).
+2. Instalační skript stáhne `zabbix-release` pro Debian 13 z repozitáře Zabbix 8.0,
+   aktualizuje `apt` a nainstaluje `zabbix-agent2`.
+3. Konfigurační skript nastaví v `/etc/zabbix/zabbix_agent2.conf` parametry `Hostname`,
+   `Server`, `ServerActive` a `HostMetadata=SPOS`, povolí a restartuje službu.
+4. Název hosta se vytvoří jen jednou (prefix `therealdeleg-debian13` + 12 náhodných znaků),
+   uloží se do `/var/lib/zabbix-auto-reg/hostname` a při dalším provisioningu se jen načte.
+   Přežije restart VM i opakovaný `vagrant provision`. Po `vagrant destroy` vznikne nový název.
+5. Registraci spouští aktivní spojení agenta se serverem, kde jsou připravena pravidla
+   pro `HostMetadata=SPOS`.
 
-## Požadavky
+## Spuštění
 
-1. Vytvořte v kořeni svého repozitáře `Vagrantfile` pro Debian 13. Jako výchozí bod můžete použít [`Vagrant/Vagrantfile-debian`](Vagrant/Vagrantfile-debian).
-2. Připravte vlastní instalační a konfigurační skripty a zapojte je jako Vagrant provisionery. Instalace musí používat **oficiální repozitář Zabbix 8.0 pro Debian 13**, nikoli balíček starší verze nebo balíček z výchozího repozitáře Debianu.
-3. Nastavte v agentovi `Server` a `ServerActive` na `enceladus.pfsense.cz`, `HostMetadata=SPOS` a jedinečný `Hostname`. Název hosta musí zůstat stejný po restartu virtuálního stroje i po opakovaném spuštění provisioningu.
-4. Registrace proběhne na Zabbix serveru `enceladus.pfsense.cz`, kde jsou již připravena pravidla pro hosty s `HostMetadata=SPOS`. Po registraci ověřte, že má váš host přiřazenou skupinu, štítek a šablonu pro monitoring Linuxu agentem 2.
-5. Ověřte, že se host v Zabbixu skutečně objevil a že z něj přicházejí data.
+```
+vagrant up
+```
 
-## Stručná nápověda k postupu
+## Ověření
 
-- Projděte si ukázku v adresáři [`Example/`](Example/). Je určena pro starší Ubuntu a starší Zabbix: použijte ji jen jako inspiraci pro strukturu Vagrantfile a skriptů.
-- Na [stránce ke stažení Zabbixu](https://www.zabbix.com/download) vyberte větev **8.0 LTS**, distribuci **Debian 13** a komponentu **Agent 2**. Získané instalační kroky převeďte do skriptu. Po instalaci zkontrolujte verzi agenta a stav služby.
-- V konfiguraci `/etc/zabbix/zabbix_agent2.conf` se zaměřte na parametry `Hostname`, `Server`, `ServerActive` a `HostMetadata`. Automatickou registraci zahajuje aktivní spojení agenta se serverem.
-- Při hledání chyby ověřte dostupnost serveru `enceladus.pfsense.cz`, stav služby `zabbix-agent2` a její záznamy v systémovém žurnálu.
+Uvnitř VM (`vagrant ssh`):
 
-## Co odevzdat
+```
+cat /var/lib/zabbix-auto-reg/hostname
+zabbix_agent2 -V | head -n1
+systemctl status zabbix-agent2
+grep -E '^(Hostname|Server|ServerActive|HostMetadata)=' /etc/zabbix/zabbix_agent2.conf
+getent hosts enceladus.pfsense.cz
+timeout 5 bash -c '</dev/tcp/enceladus.pfsense.cz/10051' && echo OK
+```
 
-Ve svém žákovském repozitáři doporučujeme odstranit vše, co jste ze šablony nevyužili, a ponechat jen soubory potřebné k odevzdání:
+V Zabbixu je registrovaný host `therealdeleg-debian13-89d882b87a7a` se skupinou `SPOS`,
+štítkem `	class: os, OS: Linux, target: linux`:
 
-- Funkční `Vagrantfile` a vlastní instalační a konfigurační skripty, které automaticky připraví agenta.
-- V adresáři `Images/` snímky obrazovky dokazující **registraci hosta s vaším jedinečným názvem** a **funkční monitorování** (například aktuálně přijímaná data v Zabbixu).
-- Upravený `README.md` se stručným popisem postupu práce, způsobem spuštění a ověření výsledku. Můžete do něj přidat také vlastní tematický obrázek.
+![Registrace hosta](Images/[soubor-registrace].png)
 
-## Dokumentace
+Příchozí data z hosta (Latest data):
 
-- [Zabbix 8.0: instalace z oficiálních balíčků](https://www.zabbix.com/documentation/8.0/en/manual/installation/install/packages)
-- [Zabbix 8.0: automatická registrace aktivního agenta](https://www.zabbix.com/documentation/8.0/en/manual/discovery/auto_registration)
-- [Zabbix 8.0: parametry konfigurace agenta 2](https://www.zabbix.com/documentation/8.0/en/manual/concepts/agent2/agent2_params)
+![Data z hosta](Images/hostdata.png)
+
+## Soubory
+
+- `Vagrantfile`: Debian 13 box a automatický provisioning.
+- `install-zabbix-agent2.sh`: instalace Zabbix Agent 2 8.0 z oficiálního repozitáře.
+- `configure-zabbix-agent2.sh`: stálý název hosta, nastavení agenta a spuštění služby.
+- `Images/`: screenshoty registrace a příchozích dat.
+
+## Zdroje
