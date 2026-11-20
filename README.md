@@ -1,6 +1,6 @@
 # OSY: Automatická registrace Debianu 13 do Zabbixu
 
-![Ilustrace FreeBSD serveru a monitoringu]
+![Ilustrace FreeBSD serveru a monitoringu](Images/kvintesencni-zabbix-install.png)
 
 Vagrant spustí virtuální stroj s Debianem 13 (`bento/debian-13`), nainstaluje na něj
 Zabbix Agent 2 verze 8.0 LTS z oficiálního repozitáře Zabbixu a automaticky ho
